@@ -38,9 +38,16 @@ if(isset($_GET['trackingNo']))
 	$dom->loadHTML($result);
 	libxml_clear_errors();
     
-    // ----- Get tracking result box -----
+    // xpath
     $xpath = new DOMXPath($dom);
+
+    // ----- Get tracking result box -----
     $trackDetails = $xpath->query("//*[contains(@class, 'tracking-result-box-right-inner')]");
+
+    // ----- Get Pickup date for Year ----
+    $pickupDateDiv = $xpath->query("//*[contains(@class, 'input-side track-input')]");
+    $pickupDate = ($pickupDateDiv->length > 0) ? formatDate(cleanDetail($pickupDateDiv[0]->nodeValue)) : "";
+    $pickupYear = ($pickupDate) ? $pickupDate->format('Y') : "";
 
     foreach ($trackDetails as $detail) 
     {
@@ -51,10 +58,12 @@ if(isset($_GET['trackingNo']))
 
         // ----- Get Date and Time -----
         $trackTime = $xpath->query("//*[contains(@class, 'tracking-point-date-time')]");
-        $dateRaw = cleanDetail($trackTime[0]->nodeValue);
-        $timeRaw = cleanDetail($trackTime[1]->nodeValue);
-        echo "Date: ". $dateRaw."\n";
-        echo "Time: ". $timeRaw."\n\n";
+        $date = ($trackTime->length > 0) ? formatDate(cleanDetail($trackTime[0]->nodeValue." ".$pickupYear), 'd M Y') : "";
+        $date = ($date) ? $date->format('d/m/Y') : "";
+        $time = ($trackTime->length > 1) ? cleanDetail($trackTime[1]->nodeValue) : "";
+
+        echo "Date: ". $date."\n";
+        echo "Time: ". $time."\n\n";
         
         // $tmp_dom->appendChild($tmp_dom->importNode($detail,true));
 
@@ -81,4 +90,10 @@ function cleanDetail($str, $explode = false) {
     }
 
     return $str;
+}
+
+function formatDate($date, $format = 'd/m/Y') {
+    $datetime = new DateTime();
+    $newDate = $datetime->createFromFormat($format, $date);
+    return $newDate;
 }
