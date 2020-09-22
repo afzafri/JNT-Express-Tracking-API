@@ -14,7 +14,7 @@ if(isset($_GET['trackingNo']))
 {
     $trackingNo = $_GET['trackingNo']; # put your skynet tracking number here
 
-	$url = "https://www.jtexpress.my/track.php";
+    $url = "https://www.jtexpress.my/track.php";
 
 	# use cURL instead of file_get_contents(), this is because on some server, file_get_contents() cannot be used
 	# cURL also have more options and customizable
@@ -44,37 +44,67 @@ if(isset($_GET['trackingNo']))
     // ----- Get tracking result box -----
     $trackDetails = $xpath->query("//*[contains(@class, 'tracking-result-box-right-inner')]");
 
-    // ----- Get Pickup date for Year ----
-    $pickupDateDiv = $xpath->query("//*[contains(@class, 'input-side track-input')]");
-    $pickupDate = ($pickupDateDiv->length > 0) ? formatDate(cleanDetail($pickupDateDiv[0]->nodeValue)) : "";
-    $pickupYear = ($pickupDate) ? $pickupDate->format('Y') : "";
+    if($trackDetails->length > 0) # check if there is records found or not
+	{
+        $trackres['message'] = "Record Found"; # return record found if number of row > 0
 
-    foreach ($trackDetails as $detail) 
+        // ----- Get Pickup date for Year ----
+        $pickupDateDiv = $xpath->query("//*[contains(@class, 'input-side track-input')]");
+        $pickupDate = ($pickupDateDiv->length > 0) ? formatDate(cleanDetail($pickupDateDiv[0]->nodeValue)) : "";
+        $pickupYear = ($pickupDate) ? $pickupDate->format('Y') : "";
+
+        foreach ($trackDetails as $detail) 
+        {
+            $tmp_dom = new DOMDocument(); 
+            $tmp_dom->appendChild($tmp_dom->importNode($detail,true));
+            // xpath
+            $xpath = new DOMXPath($tmp_dom);
+
+            // ----- Get Date and Time -----
+            $trackTime = $xpath->query("//*[contains(@class, 'tracking-point-date-time')]");
+            $date = ($trackTime->length > 0) ? formatDate(cleanDetail($trackTime[0]->nodeValue." ".$pickupYear), 'd M Y') : "";
+            $date = ($date) ? $date->format('d/m/Y') : "";
+            $time = ($trackTime->length > 1) ? cleanDetail($trackTime[1]->nodeValue) : ""; 
+
+            // ---- Get Tracking Details----
+            $location = "";
+            $city = "";
+            $process = "";
+            $remark = "";
+
+            $trackDetailsSection = $xpath->query("//*[contains(@class, 'tracking-point-details')]");
+            if($trackDetailsSection->length > 0) {
+                $trackDetailsArr = cleanHTML($tmp_dom->saveHTML($trackDetailsSection[0]));
+                $location = (isset($trackDetailsArr[0])) ? cleanDetail($trackDetailsArr[0]) : "";
+                $city = (isset($trackDetailsArr[1])) ? cleanDetail($trackDetailsArr[1], true) : "";
+                $process = (isset($trackDetailsArr[2])) ? cleanDetail($trackDetailsArr[2], true) : "";
+                $remark = (isset($trackDetailsArr[3])) ? cleanDetail($trackDetailsArr[3], true) : "";
+            }
+
+            // Append Data into JSON
+            $trackres['data'][] = array(
+                "date" => $date,
+                "time" => $time,
+                "location" => $location,
+                "city" => $city,
+                "process" => $process,
+                "remark" => $remark,
+            );
+        }
+    } 
+    else 
     {
-        $tmp_dom = new DOMDocument(); 
-        $tmp_dom->appendChild($tmp_dom->importNode($detail,true));
-        // xpath
-        $xpath = new DOMXPath($tmp_dom);
-
-        // ----- Get Date and Time -----
-        $trackTime = $xpath->query("//*[contains(@class, 'tracking-point-date-time')]");
-        $date = ($trackTime->length > 0) ? formatDate(cleanDetail($trackTime[0]->nodeValue." ".$pickupYear), 'd M Y') : "";
-        $date = ($date) ? $date->format('d/m/Y') : "";
-        $time = ($trackTime->length > 1) ? cleanDetail($trackTime[1]->nodeValue) : "";
-
-        echo "Date: ". $date."\n";
-        echo "Time: ". $time."\n\n";
-        
-        // $tmp_dom->appendChild($tmp_dom->importNode($detail,true));
-
-
-
-
-        // echo $detail->getElementsByTagName('li')."\n\n";
+        $trackres['message'] = "No Record Found"; # return record not found if number of row < 0
+        # since no record found, no need to parse the html furthermore
     }
-   
-    
-    // print_r($result);
+
+    # add project info into the array
+    $trackres['info']['creator'] = "Afif Zafri (afzafri)";
+    $trackres['info']['project_page'] = "https://github.com/afzafri/JNT-Express-Tracking-API";
+    $trackres['info']['date_updated'] =  "22/09/2020";
+
+    # output/display the JSON formatted string
+    echo json_encode($trackres);
 }
 
 function cleanDetail($str, $explode = false) {
@@ -96,4 +126,18 @@ function formatDate($date, $format = 'd/m/Y') {
     $datetime = new DateTime();
     $newDate = $datetime->createFromFormat($format, $date);
     return $newDate;
+}
+
+function cleanHtml($html) {
+    $patern = '#<div([\w\W]*?)div>#';
+    preg_match_all($patern, html_entity_decode($html), $parsed);
+
+    $rows = explode("<br>", $parsed[0][0]);
+
+    $cleaned = array();
+    foreach($rows as $row) {
+        $cleaned[] = strip_tags($row);
+    }
+    
+    return $cleaned;
 }
