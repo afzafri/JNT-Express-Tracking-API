@@ -1,6 +1,6 @@
 {
     "name": "afzafri/jnt-express-tracking-api",
-    "description": "Return JSON formatted string of Poslaju Tracking details",
+    "description": "Return JSON formatted string of J&T Tracking details",
     "type": "library",
     "authors": [
         {
