@@ -8,7 +8,7 @@
 	<?php
 
 	$trackingNo = ""; # your tracking number
-	$url = "http://localhost/jntAPI/api.php?trackingNo=".$trackingNo; # the full URL to the API
+	$url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://".$_SERVER['HTTP_HOST']."/api.php?trackingNo=".$trackingNo; # the full URL to the API
 	$getdata = file_get_contents($url); # use files_get_contents() to fetch the data, but you can also use cURL, or javascript/jquery json
 	$parsed = json_decode($getdata,true); # decode the json into array. set true to return array instead of object
 
