@@ -42,7 +42,7 @@ class JNTExpressTrackingApi
 
 	        // ----- Get Pickup date for Year ----
 	        $pickupDateDiv = $xpath->query("//*[contains(@class, 'input-side track-input')]");
-	        $pickupDate = ($pickupDateDiv->length > 0) ? formatDate(cleanDetail($pickupDateDiv[0]->nodeValue)) : "";
+	        $pickupDate = ($pickupDateDiv->length > 0) ? self::formatDate(self::cleanDetail($pickupDateDiv[0]->nodeValue)) : "";
 	        $pickupYear = ($pickupDate) ? $pickupDate->format('Y') : "";
 
 	        foreach ($trackDetails as $detail) 
@@ -54,9 +54,9 @@ class JNTExpressTrackingApi
 
 	            // ----- Get Date and Time -----
 	            $trackTime = $xpath->query("//*[contains(@class, 'tracking-point-date-time')]");
-	            $date = ($trackTime->length > 0) ? formatDate(cleanDetail($trackTime[0]->nodeValue." ".$pickupYear), 'd M Y') : "";
+	            $date = ($trackTime->length > 0) ? self::formatDate(self::cleanDetail($trackTime[0]->nodeValue." ".$pickupYear), 'd M Y') : "";
 	            $date = ($date) ? $date->format('d/m/Y') : "";
-	            $time = ($trackTime->length > 1) ? cleanDetail($trackTime[1]->nodeValue) : ""; 
+	            $time = ($trackTime->length > 1) ? self::cleanDetail($trackTime[1]->nodeValue) : ""; 
 
 	            // ---- Get Tracking Details----
 	            $location = "";
@@ -66,11 +66,11 @@ class JNTExpressTrackingApi
 
 	            $trackDetailsSection = $xpath->query("//*[contains(@class, 'tracking-point-details')]");
 	            if($trackDetailsSection->length > 0) {
-	                $trackDetailsArr = cleanHTML($tmp_dom->saveHTML($trackDetailsSection[0]));
-	                $location = (isset($trackDetailsArr[0])) ? cleanDetail($trackDetailsArr[0]) : "";
-	                $city = (isset($trackDetailsArr[1])) ? cleanDetail($trackDetailsArr[1], true) : "";
-	                $process = (isset($trackDetailsArr[2])) ? cleanDetail($trackDetailsArr[2], true) : "";
-	                $remark = (isset($trackDetailsArr[3])) ? cleanDetail($trackDetailsArr[3], true) : "";
+	                $trackDetailsArr = self::cleanHTML($tmp_dom->saveHTML($trackDetailsSection[0]));
+	                $location = (isset($trackDetailsArr[0])) ? self::cleanDetail($trackDetailsArr[0]) : "";
+	                $city = (isset($trackDetailsArr[1])) ? self::cleanDetail($trackDetailsArr[1], true) : "";
+	                $process = (isset($trackDetailsArr[2])) ? self::cleanDetail($trackDetailsArr[2], true) : "";
+	                $remark = (isset($trackDetailsArr[3])) ? self::cleanDetail($trackDetailsArr[3], true) : "";
 	            }
 
 	            // Append Data into JSON
@@ -115,7 +115,7 @@ class JNTExpressTrackingApi
 	}
 
 	function formatDate($date, $format = 'd/m/Y') {
-	    $datetime = new DateTime();
+	    $datetime = new \DateTime();
 	    $newDate = $datetime->createFromFormat($format, $date);
 	    return $newDate;
 	}
