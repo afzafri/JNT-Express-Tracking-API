@@ -1,5 +1,5 @@
 {
-    "name": "afzafri/skynet-tracking-api",
+    "name": "afzafri/jnt-express-tracking-api",
     "description": "Return JSON formatted string of Poslaju Tracking details",
     "type": "library",
     "authors": [
