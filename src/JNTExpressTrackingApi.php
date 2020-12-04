@@ -101,7 +101,7 @@ class JNTExpressTrackingApi
 		return $trackres;
     }
 
-	function cleanDetail($str, $explode = false) {
+	static function cleanDetail($str, $explode = false) {
 	    if($str != null || $str != "") {
 	        if($explode) {
 	            $strArr = explode(":", $str);
@@ -116,13 +116,13 @@ class JNTExpressTrackingApi
 	    return $str;
 	}
 
-	function formatDate($date, $format = 'd/m/Y') {
+	static function formatDate($date, $format = 'd/m/Y') {
 	    $datetime = new \DateTime();
 	    $newDate = $datetime->createFromFormat($format, $date);
 	    return $newDate;
 	}
 
-	function cleanHtml($html) {
+	static function cleanHtml($html) {
 	    $patern = '#<div([\w\W]*?)div>#';
 	    preg_match_all($patern, html_entity_decode($html), $parsed);
 
