@@ -15,6 +15,7 @@ class JNTExpressTrackingApi
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); # receive server response
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); # tell cURL to accept an SSL certificate on the host server
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); # tell cURL to graciously accept an SSL certificate on the target server
+	        curl_setopt($ch, CURLOPT_TIMEOUT, 5); //timeout in seconds
 		$result = curl_exec($ch); # execute curl, fetch webpage content
 		$httpstatus = curl_getinfo($ch, CURLINFO_HTTP_CODE); # receive http response status
 		$errormsg = (curl_error($ch)) ? curl_error($ch) : "No error"; # catch error message
