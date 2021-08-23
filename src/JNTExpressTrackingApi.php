@@ -6,16 +6,16 @@ class JNTExpressTrackingApi
 {
     public static function crawl($trackingNo, $include_info = false)
     {
-	    $url = "https://www.jtexpress.my/track.php";
+	    $url = "https://www.jtexpress.my/tracking/";
 
 		# use cURL instead of file_get_contents(), this is because on some server, file_get_contents() cannot be used
 		# cURL also have more options and customizable
 		$ch = curl_init(); # initialize curl object
-		curl_setopt($ch, CURLOPT_URL, $url . "?awbs=".$trackingNo); # set url
+		curl_setopt($ch, CURLOPT_URL, $url . $trackingNo); # set url
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); # receive server response
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); # tell cURL to accept an SSL certificate on the host server
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); # tell cURL to graciously accept an SSL certificate on the target server
-	        curl_setopt($ch, CURLOPT_TIMEOUT, 5); //timeout in seconds
+	    curl_setopt($ch, CURLOPT_TIMEOUT, 5); //timeout in seconds
 		$result = curl_exec($ch); # execute curl, fetch webpage content
 		$httpstatus = curl_getinfo($ch, CURLINFO_HTTP_CODE); # receive http response status
 		$errormsg = (curl_error($ch)) ? curl_error($ch) : "No error"; # catch error message
@@ -35,55 +35,73 @@ class JNTExpressTrackingApi
 	    $xpath = new \DOMXPath($dom);
 
 	    // ----- Get tracking result box -----
-	    $trackDetails = $xpath->query("//*[contains(@class, 'tracking-result-box-right-inner')]");
+	    $trackDetails = $xpath->query("//*[contains(@class, 'container text-start p-1 pt-3')]");
 
 	    if($trackDetails->length > 0) # check if there is records found or not
 		{
 			$trackres['status'] = 1;
 	        $trackres['message'] = "Record Found"; # return record found if number of row > 0
 
-	        // ----- Get Pickup date for Year ----
-	        $pickupDateDiv = $xpath->query("//*[contains(@class, 'input-side track-input')]");
-	        $pickupDate = ($pickupDateDiv->length > 0) ? self::formatDate(self::cleanDetail($pickupDateDiv[0]->nodeValue)) : "";
-	        $pickupYear = ($pickupDate) ? $pickupDate->format('Y') : "";
-
-	        foreach ($trackDetails as $detail) 
+	        foreach ($trackDetails as $index => $detail) 
 	        {
 	            $tmp_dom = new \DOMDocument(); 
 	            $tmp_dom->appendChild($tmp_dom->importNode($detail,true));
+
 	            // xpath
-	            $xpath = new \DOMXPath($tmp_dom);
+	            $tmp_xpath = new \DOMXPath($tmp_dom);
 
-	            // ----- Get Date and Time -----
-	            $trackTime = $xpath->query("//*[contains(@class, 'tracking-point-date-time')]");
-	            $date = ($trackTime->length > 0) ? self::formatDate(self::cleanDetail($trackTime[0]->nodeValue." ".$pickupYear), 'd M Y') : "";
+	            // ----- Get Date -----
+	            $trackDate = $xpath->query("//*[contains(@class, 'text-sm-end fs-5 pt-3')]");
+
+	            $date = ($trackDate->length > 0) ? self::formatDate(self::cleanDetail($trackDate[$index]->nodeValue)) : "";
 	            $date = ($date) ? $date->format('d/m/Y') : "";
-	            $time = ($trackTime->length > 1) ? self::cleanDetail($trackTime[1]->nodeValue) : ""; 
 
-	            // ---- Get Tracking Details----
-	            $location = "";
-	            $city = "";
-	            $process = "";
-	            $remark = "";
+	           // ---- Get Tracking Details----
+			   $location = "";
+			   $city = "";
+			   $process = "";
+			   $remark = "";
+			   $time = "";
 
-	            $trackDetailsSection = $xpath->query("//*[contains(@class, 'tracking-point-details')]");
-	            if($trackDetailsSection->length > 0) {
-	                $trackDetailsArr = self::cleanHTML($tmp_dom->saveHTML($trackDetailsSection[0]));
-	                $location = (isset($trackDetailsArr[0])) ? self::cleanDetail($trackDetailsArr[0]) : "";
-	                $city = (isset($trackDetailsArr[1])) ? self::cleanDetail($trackDetailsArr[1], true) : "";
-	                $process = (isset($trackDetailsArr[2])) ? self::cleanDetail($trackDetailsArr[2], true) : "";
-	                $remark = (isset($trackDetailsArr[3])) ? self::cleanDetail($trackDetailsArr[3], true) : "";
-	            }
+			   $trackDetailsSection = $tmp_xpath->query("//*[contains(@class, 'row')]");
 
-	            // Append Data into JSON
-	            $trackres['data'][] = array(
-	                "date" => $date,
-	                "time" => $time,
-	                "location" => $location,
-	                "city" => $city,
-	                "process" => $process,
-	                "remark" => $remark,
-	            );
+			   if($trackDetailsSection->length > 0){
+				   foreach ($trackDetailsSection as $index => $section) {
+						$section_dom = new \DOMDocument(); 
+						$section_dom->appendChild($section_dom->importNode($section,true));
+						$section_xpath = new \DOMXPath($section_dom);
+
+						$getLocation = $section_xpath->query("//*[contains(@class, 'fw-light')]");
+						$getTime = $section_xpath->query("//*[contains(@class, 'fw-b mt-3')]");
+						$getProcess = $section_xpath->query("//*[contains(@style, 'color:#e60000;')]");
+						$getRemark = $section_xpath->query("//*[contains(@class, 'col-7 mt-3')]");
+
+						$location = self::cleanDetail($getLocation[0]->nodeValue);
+						$process = self::cleanDetail($getProcess[0]->nodeValue);
+						$time = self::cleanDetail($getTime[0]->nodeValue);
+						$city = "";
+
+						$filter = [
+							"(", 
+							")", 
+							"Proof of Delivery", 
+							self::cleanDetail($getLocation[0]->nodeValue), 
+							self::cleanDetail($getProcess[0]->nodeValue)
+						];
+
+						$remark = self::cleanDetail(str_replace($filter, "", self::cleanDetail($getRemark[0]->nodeValue)));
+					   
+						 // Append Data into JSON
+						$trackres['data'][] = array(
+							"date" => $date,
+							"time" => $time,
+							"location" => $location,
+							"city" => $city,
+							"process" => $process,
+							"remark" => $remark,
+						);
+				   }
+			   }
 	        }
 	    } 
 	    else 
@@ -118,9 +136,11 @@ class JNTExpressTrackingApi
 	}
 
 	static function formatDate($date, $format = 'd/m/Y') {
-	    $datetime = new \DateTime();
-	    $newDate = $datetime->createFromFormat($format, $date);
-	    return $newDate;
+	    $time = date('d/m/Y', strtotime($date));
+		$datetime = new \DateTime();
+		$newDate = $datetime->createFromFormat($format, $time);
+
+	    return ($newDate);
 	}
 
 	static function cleanHtml($html) {
