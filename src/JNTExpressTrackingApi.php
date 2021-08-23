@@ -74,12 +74,22 @@ class JNTExpressTrackingApi
 						$getLocation = $section_xpath->query("//*[contains(@class, 'fw-light')]");
 						$getTime = $section_xpath->query("//*[contains(@class, 'fw-b mt-3')]");
 						$getProcess = $section_xpath->query("//*[contains(@style, 'color:#e60000;')]");
+						$getRemark = $section_xpath->query("//*[contains(@class, 'col-7 mt-3')]");
 
 						$location = self::cleanDetail($getLocation[0]->nodeValue);
 						$process = self::cleanDetail($getProcess[0]->nodeValue);
 						$time = self::cleanDetail($getTime[0]->nodeValue);
-						$remark = "";
 						$city = "";
+
+						$filter = [
+							"(", 
+							")", 
+							"Proof of Delivery", 
+							self::cleanDetail($getLocation[0]->nodeValue), 
+							self::cleanDetail($getProcess[0]->nodeValue)
+						];
+
+						$remark = self::cleanDetail(str_replace($filter, "", self::cleanDetail($getRemark[0]->nodeValue)));
 					   
 						 // Append Data into JSON
 						$trackres['data'][] = array(
